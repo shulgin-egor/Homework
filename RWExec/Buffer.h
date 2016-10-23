@@ -1,17 +1,17 @@
-#ifndef RWExec_h
-#define RWExec_h
+#ifndef Buffer_h
+#define Buffer_h
 
 #define PTR_ERROR NULL
 #define INT_ERROR -1
 #define OK 0
-#define SIZE_OF_BUFFER 9
+#define SIZE_OF_BUFFER 512
 
 /***************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
+#include <errno.h>
 
 #include <sys/types.h>
 #include <sys/uio.h>
@@ -26,8 +26,16 @@ int bufferedWrite(const int fileDes, const char* data);
 
 int bufferedWrite(const int fileDes, const char* data)
 {
-    assert(fileDes >= 0);
-    assert(data);
+    if (fileDes < 0)
+    {
+        errno = EINVAL;
+        return INT_ERROR;
+    }
+    if (data == NULL)
+    {
+        errno = EINVAL;
+        return INT_ERROR;
+    }
     
     int nBytes = SIZE_OF_BUFFER;
     int ptrShift = 0;
@@ -40,7 +48,7 @@ int bufferedWrite(const int fileDes, const char* data)
         nBytes = write(fileDes, buffer, strlen(buffer));
         if (nBytes == INT_ERROR)
         {
-            perror("! WRITE ERROR");
+            errno = EIO;
             return INT_ERROR;
         }
         ptrShift += nBytes;
@@ -53,7 +61,11 @@ int bufferedWrite(const int fileDes, const char* data)
 
 char* bufferedRead(const int fileDes)
 {
-    assert(fileDes >= 0);
+    if (fileDes < 0)
+    {
+        errno = EINVAL;
+        return PTR_ERROR;
+    }
     
     int nBytes = SIZE_OF_BUFFER;
     char buffer[SIZE_OF_BUFFER] = "";
@@ -64,10 +76,9 @@ char* bufferedRead(const int fileDes)
         nBytes = read(fileDes, buffer, SIZE_OF_BUFFER);
         if (nBytes == INT_ERROR)
         {
-            perror("! READ ERROR");
+            errno = EIO;
             return PTR_ERROR;
         }
-        
         realloc(fileContent, strlen(fileContent) + nBytes);
         strncat(fileContent, buffer, nBytes);
     }
@@ -75,4 +86,4 @@ char* bufferedRead(const int fileDes)
     return fileContent;
 }
 
-#endif /* RWExec_h */
+#endif /* Buffer_h */
